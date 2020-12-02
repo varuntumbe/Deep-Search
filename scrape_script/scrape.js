@@ -104,9 +104,10 @@ class scrapePdf
         
         rl.on('close',()=>{
             this.jsonData.data.word_data = word_data;
+            console.log(word_data);
         });
     }
 }
 
-let r= new scrapePdf(`${__dirname}/pdfs/net-into.pdf`,'net-into');
+let r= new scrapePdf(`${__dirname}/pdfs/syll.pdf`,'syll');
 r.checklog();

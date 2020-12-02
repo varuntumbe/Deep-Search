@@ -27,6 +27,9 @@ class Database{
            
     }
 
+    //authors query
+    
+
     //used to end the connection
     end_conn(){
 
