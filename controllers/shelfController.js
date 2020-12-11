@@ -12,8 +12,7 @@ exports.getAllAuthors=(req,res)=>{
     })
      .catch((err)=>{
         db.endConn();
-        console.log(err);
-        return res.end('err happended')
+        return res.status(500).end('server error')
      })
     
 }
@@ -26,7 +25,15 @@ exports.addAuthor=(req,res)=>{
 /*---------Books--------*/
 //handler for GET allBooks route
 exports.getAllBooks=(req,res)=>{
-    return res.status(200).json({status:'working'});
+   const r=db.bookQuery();
+
+   r.then((data)=>{
+    db.endConn();
+    return res.status(200).json(data);
+   })
+   .catch((err)=>{
+       return res.status(500).end('server error');
+   })
 }
 
 //handler for POST addBook route

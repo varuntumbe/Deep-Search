@@ -5,8 +5,8 @@ class Database{
     constructor(){
         this.mysql = require('mysql');
         this.util = require('util');
-        this.dbUsername = process.env.dbUsername || 'root';
-        this.dbPassword = process.env.dbPassword || 'varalaxmi';
+        this.dbUsername = process.env.dbUsername 
+        this.dbPassword = process.env.dbPassword 
         this.dbName = process.env.dbName || 'deep_search';
         this.conn = this.mysql.createConnection({
             host     : 'localhost',
@@ -22,15 +22,14 @@ class Database{
         return this.util.promisify(func);
     }
 
-    // test connection
+    // query about author
     authorQuery(){
 
         return new Promise((resolve,reject)=>{
-             this.conn.query('SELECT * from book', function (error, results) {
+             this.conn.query('SELECT * from author', function (error, results) {
                 if (error) reject('err');
-                let nresults={status:'succsess',length:results.length};
-                nresults.data=results.map((val)=>JSON.parse(JSON.stringify(val)));
-                resolve(nresults);
+
+                resolve(results);
               });
               
         })
@@ -51,7 +50,17 @@ class Database{
 
     }
 
-    //authors query
+    //query about books
+    bookQuery(){
+        return new Promise((resolve,reject)=>{
+            this.conn.query('select * from book',(err,results)=>{
+                if(err)
+                reject('err');
+
+                resolve(results);
+            })
+        });
+    }
     
 
     //used to end the connection
