@@ -1,10 +1,9 @@
-const { resolve } = require('path');
-
 class Database {
   //initializing the database connection
   constructor() {
     this.mysql = require('mysql');
     this.util = require('util');
+    this.async = require('async');
     this.dbUsername = process.env.dbUsername;
     this.dbPassword = process.env.dbPassword;
     this.dbName = process.env.dbName || 'deep_search';
@@ -58,6 +57,171 @@ class Database {
     });
   }
 
+  //storing scraped pdf texts to database
+  async writeScrapedData(bookName, wordData) {
+    try {
+      const bookResultPacket = await this.getBookId(bookName);
+      const bno = bookResultPacket[0].bno;
+      for (let key in wordData) {
+        let pno = parseInt(key);
+        let text = wordData[key];
+        let textArr = text.split(' ');
+        //calling the function next which has waterfall :)
+        await this.writeDataseq(bno, pno, textArr);
+      }
+      return 'everything went fine';
+    } catch (error) {
+      return Error(error);
+    }
+  }
+
+  writeDataseq(bno, pno, textArr) {
+    const finalCallback = (err, results) => {
+      if (err) {
+        //here have to rollback;
+        this.conn.rollback();
+        return Error('error while writing texts to db');
+      } else {
+        //here have to commit everything
+        this.conn.commit();
+      }
+    };
+
+    //here waterfall starts
+    this.async.waterfall(
+      [
+        //first function to write to pageno table
+        (callback) => {
+          //query to insert pageno and booknum
+          this.conn.query(
+            //FIXME: this inside the function is undefined  (SOL:::: got fixed automatically when i used arrow functions ) GODDAMN WHY ???
+            `insert ignore into pageno(Pgno,bno) values("${pno}","${bno}")`,
+            (err, result) => {
+              if (err) {
+                this.conn.rollback();
+                console.log('error in 1st method of waterfall');
+                callback(err, 'finished in error');
+              } else {
+                console.log('byeeee');
+                callback(null, pno, bno, textArr);
+              }
+            }
+          );
+        },
+        //query to get pgId from pageno table
+        //2nd function of waterfall to fetch the id of pageTable
+        (pno, bno, textArr, callback) => {
+          try {
+            this.conn.query(
+              `select pgid from pageno where pgno="${pno}" and bno="${bno}"`,
+              (err, result) => {
+                let pgId = result[0].pgid;
+                callback(null, pgId, textArr);
+              }
+            );
+          } catch (error) {
+            callback(Error('error in getPageTableId'));
+          }
+        },
+
+        //query to insert all the words of a pert page of a pert book to database
+        //3rd function of waterfall to write words to db
+        async (pgId, textArr, callback) => {
+          try {
+            for (let index = 0; index < textArr.length; index++) {
+              let leftWord = null;
+              let rightWord = null;
+
+              let word = textArr[index];
+
+              if (index - 1 >= 0) {
+                leftWord = textArr[index - 1];
+              }
+              if (index + 1 < textArr.length) {
+                rightWord = textArr[index + 1];
+              }
+
+              await this.conn.query(
+                `insert ignore into words(word) values("${word}")`,
+                async (err, result) => {
+                  if (err) {
+                    this.conn.rollback();
+                    callback(Error('error in addWordToDb func'));
+                  } else {
+                    let wordId = 0; // assuming every insert is ignored (if performance issue happened look here to optmise)
+                    await this.conn.query(
+                      `select wid from words where word="${word}"`,
+                      (err, result) => {
+                        if (err) {
+                          callback(
+                            Error(
+                              'error in addWordToDb func while fetching wordId'
+                            )
+                          );
+                        } else {
+                          wordId = result[0].wid;
+                          console.log(wordId);
+                          callback(null, wordId, pgId, leftWord, rightWord);
+                        }
+                      }
+                    );
+                  }
+                }
+              );
+            }
+            callback(null, 'everything went fine');
+          } catch (error) {
+            callback(Error('error in writeWordToDb'));
+          }
+        },
+
+        //4th function of waterfall
+        //writes word instance of each word in to the database
+        (wordId, pgId, leftWord, rightWord, callback) => {
+          try {
+            this.conn.query(
+              `insert into wordinst(pgid,wid) values("${pgId}"."${wordId}")`,
+              (err, result) => {
+                if (err) {
+                  this.conn.rollback();
+                  callback(
+                    Error('error in 4th func while writing to wordinst')
+                  );
+                }
+                let wiid = result.insertId; //NOTE : here i havent made any special search query to get wiid because i dont have to ;)
+                callback(null, wiid, leftWord, rightWord);
+              }
+            );
+          } catch (error) {
+            callback(Error('error in dealing with wordInstance'));
+          }
+        },
+
+        //5th function of waterfall
+        //writes word context to each word TODO:
+        (wiid, leftWord, rightWord, callback) => {
+          try {
+            this.conn.query(
+              `insert into wordctxt(wcxtid,leftword,rightword) values("${wiid}","${leftWord}","${rightWord}")`,
+              (err, result) => {
+                if (err) {
+                  this.conn.rollback();
+                  callback(
+                    Error('error in 5th func of waterfall while writing')
+                  );
+                }
+              }
+            );
+          } catch (error) {
+            callback(Error('error in 5th waterfall func'));
+          }
+        },
+      ],
+      //will get executed when every waterfall fucntions get over
+      finalCallback
+    );
+  }
+
   //query to get book id by its name
   getBookId(name) {
     return new Promise((resolve, reject) => {
@@ -66,212 +230,6 @@ class Database {
         (err, results) => {
           if (err) reject('err');
 
-          resolve(results);
-        }
-      );
-    });
-  }
-
-  async writeScrapeData(bno, pno, textArr) {
-    return new Promise((resolve, reject) => {
-      //transaction begins
-      this.conn.beginTransaction((err) => {
-        if (err) {
-          reject('err');
-        }
-        this.conn.query(
-          `insert ignore into pageno(Pgno,bno) values(${pno},${bno})`,
-          async (err, results) => {
-            if (err) {
-              this.conn.rollback();
-              console.log('error in writeScrapeData method');
-              reject('err');
-            }
-
-            //if earrlier op went successfully then continue with the next one
-            try {
-              const pgId = results.insertId;
-              //TODO: fixing insertid when its 0;
-
-              if (pgId == 0) {
-                try {
-                  const pageObj = await this.getPageId(pno, bno);
-                  console.log('pageobj : ', pageObj);
-                  pgId = pageObj[0].pgid;
-                } catch (error) {
-                  reject('error while doing some operation in getting PageId');
-                }
-              }
-
-              await this.iterateTextArr(textArr, pgId); //this function does db operation
-              resolve('success');
-            } catch (error) {
-              console.log(error);
-              this.conn.rollback();
-              reject('error');
-            }
-          }
-        );
-
-        //commiting everything if everything went successfull
-        this.conn.commit((err) => {
-          if (err) {
-            this.conn.rollback((err) => {
-              throw 'err';
-            });
-          }
-
-          console.log('transaction completed successfully');
-        });
-      });
-    });
-  }
-
-  writeWord(word) {
-    return new Promise((resolve, reject) => {
-      console.log(word);
-      this.conn.query(
-        `insert ignore into words(word) values("${word}")`,
-        async (err, result) => {
-          if (err) {
-            reject('err');
-            console.log('error in writeWord method');
-          }
-          let wordId = result.insertId;
-          //if this fails write a sep function to get word idFIXME:
-          //TODO: fixing insertid when its 0;
-          if (result.insertId == 0) {
-            try {
-              let wordobj = await this.getWordId(word);
-              wordId = wordobj[0].wid;
-            } catch (error) {
-              reject('error while operating on getting wordId');
-            }
-          }
-
-          //resolving
-          resolve(wordId);
-        }
-      );
-    });
-  }
-
-  writeWordInst(wordId, pgId) {
-    console.log(`wordId : ${wordId} pgId: ${pgId}`);
-    return new Promise((resolve, reject) => {
-      this.conn.query(
-        `insert ignore into wordinst(pgid,wid) values("${pgId}","${wordId}")`,
-        async (err, results) => {
-          if (err) {
-            console.log('error in writeWordInst method');
-            reject('err');
-          }
-
-          let wiid = results.insertId;
-          //TODO: fixing insertid when its 0;
-          if (wiid == 0) {
-            try {
-              let wiidobj = await this.getWordInstanceId(pgId, wordId);
-              wiid = wiidobj[0].wiid;
-            } catch (error) {
-              reject('error while getting wordinstance id');
-            }
-          }
-
-          resolve(wiid);
-        }
-      );
-    });
-  }
-
-  writeWordContext(wcxtid, left, right) {
-    console.log(wcxtid, left, right);
-    return new Promise((resolve, reject) => {
-      this.conn.query(
-        `insert into wordctxt(wcxtid,leftword,rightword) values("${wcxtid}","${left}","${right}")`,
-        (err, results) => {
-          if (err) {
-            reject('error in writeWordContext');
-            console.log('error in writeWordContext method');
-          }
-
-          resolve('resolved');
-        }
-      );
-    });
-  }
-
-  async iterateTextArr(textArr, pgId) {
-    for (let index = 0; index < textArr.length; index++) {
-      const word = textArr[index];
-      console.log(word);
-      try {
-        console.log(word);
-        let left = null;
-        let right = null;
-
-        if (index - 1 >= 0) {
-          left = textArr[index - 1];
-        }
-
-        if (index + 1 < textArr.length) {
-          right = textArr[index + 1];
-        }
-
-        const wordId = await this.writeWord(word);
-        console.log(wordId);
-        const contextId = await this.writeWordInst(wordId, pgId);
-        console.log(contextId);
-        await this.writeWordContext(contextId, left, right);
-      } catch (error) {
-        this.conn.rollback();
-        console.log(error);
-        return Error('some error went in iterateTextArr function');
-      }
-    }
-  }
-
-  //getting ids of each table
-  getPageId(pno, bno) {
-    return new Promise((resolve, reject) => {
-      this.conn.query(
-        `select pgid from pageno where pno="${pno}" and bno="${bno}"`,
-        (err, results) => {
-          if (err) {
-            console.log('error in getPageId');
-            reject('getPageId error');
-          }
-          resolve(results);
-        }
-      );
-    });
-  }
-
-  getWordId(word) {
-    return new Promise((resolve, reject) => {
-      this.conn.query(
-        `select wid from words where word="${word}"`,
-        (err, results) => {
-          if (err) {
-            console.log('error in getWordId');
-            reject('getWordId error');
-          }
-          console.log(results);
-          resolve(results);
-        }
-      );
-    });
-  }
-
-  getWordInstanceId(pgId, wordId) {
-    return new Promise((resolve, reject) => {
-      this.conn.query(
-        `select wiid from wordinst where pgid="${pgId}" and wid=${wordId}`,
-        (err, results) => {
-          if (err) {
-            console.log('error in getWordInstanceId');
-            reject('getWordInstanceId error');
-          }
           resolve(results);
         }
       );
