@@ -14,7 +14,6 @@ exports.writeTextToDb = (req, res) => {
       return res.status(200).end('success');
     })
     .catch((err) => {
-      console.error(err);
       return res.status(404).end('failed');
     });
 };
