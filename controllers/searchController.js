@@ -1,7 +1,19 @@
 const Database = require('../db/db');
 const db = new Database();
 
-exports.getWordContex = () => {};
+exports.getWordContext = (req, res) => {
+  const queryText = req.query.text;
+  if (queryText.length == 0) {
+    return res.status(200).end('No text was sent');
+  }
+  db.queryTextInDb(queryText)
+    .then((data) => {
+      return res.status(200).json(data);
+    })
+    .catch((err) => {
+      return res.status(500).end('Error happened in server');
+    });
+};
 
 exports.writeTextToDb = (req, res) => {
   const scrapeData = req.body;

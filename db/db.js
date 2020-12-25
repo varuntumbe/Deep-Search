@@ -1,3 +1,5 @@
+const { text } = require('body-parser');
+
 class Database {
   //initializing the database connection
   constructor() {
@@ -202,6 +204,51 @@ class Database {
       return result;
     } catch (error) {
       return Error('error in getBookId');
+    }
+  }
+
+  //querying my text in db to find out where it occured
+  async queryTextInDb(qtext) {
+    const promisifiedQuery = this.convertToPromise(this.conn.query);
+    try {
+      let textArr = qtext.split(' ');
+      //spcial case-1 (when we have just one word in qtext)
+      if (textArr.length == 1) {
+        const word = textArr[0];
+        const result = await promisifiedQuery(`select Pgno,title from ((select pgid from searchtable
+        where word="${word}") as tt natural join pageno natural join book)`);
+        return result;
+      }
+      //special case-2(when we have just 2 word in qtext)
+      if (textArr.length == 2) {
+        const firstWord = textArr[0];
+        const lastWord = textArr[1];
+        await promisifiedQuery(`call presearch("${firstWord}","${lastWord}")`);
+        const result = await promisifiedQuery(
+          `select Pgno,title from ((select pgid from temp) as tt natural join pageno natural join book)`
+        );
+        return result;
+      }
+
+      //third case where query text will be more than 2 words
+      await promisifiedQuery(`call presearch("${textArr[0]}","${textArr[1]}")`);
+      for (let index = 1; index < textArr.length - 1; index++) {
+        //call the procedures which is defined at queries.sql
+        const leftWord = textArr[index - 1];
+        const word = textArr[index];
+        const rightWord = textArr[index + 1];
+        await promisifiedQuery(
+          `call search("${leftWord}","${word}","${rightWord}")`
+        );
+      }
+      //getting the result here
+      const result = await promisifiedQuery(
+        `select Pgno,title from ((select pgid from temp) as tt natural join pageno natural join book);`
+      );
+      return result;
+    } catch (error) {
+      console.log(error);
+      throw Error('error in queryTextInDb function');
     }
   }
 

@@ -101,22 +101,22 @@ drop table if exists temp;
 CREATE TEMPORARY TABLE temp select * from searchtable;
 
 --First procedure 
+drop procedure if exists presearch;
 DELIMITER $$
 
 create procedure presearch(
-    in leftw varchar(50),
     in w varchar(50),
     in rightw varchar(50)
 )
 begin
 
-    drop temporary table if exists p;
+    drop table if exists temp;
+
+    create temporary table temp select * from searchtable;
 
     drop temporary table if exists q;
 
-    create temporary table p select * from temp where w=word and leftw=leftword;
-
-    create temporary table q select pgid from p where w=word and rightw=rightword;
+    create temporary table q select pgid from temp where w=word and rightw=rightword;
 
     drop temporary table temp;
 
@@ -156,3 +156,8 @@ begin
 end$$
 
 DELIMITER ;
+
+
+-- query for one word
+select Pgno,title from ((select pgid from searchtable
+    where word="ass") as tt natural join pageno natural join book); 
