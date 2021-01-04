@@ -23,7 +23,7 @@ class Database {
     return this.util.promisify(func).bind(this.conn);
   }
 
-  // query about author
+  // query about author (all)
   async authorQuery() {
     const promisifiedQuery = this.convertToPromise(this.conn.query);
     try {
@@ -31,6 +31,76 @@ class Database {
       return result;
     } catch (error) {
       return Error('error in author query');
+    }
+  }
+
+  // query about author (specific)
+  async authorInfo(id) {
+    const promisifiedQuery = this.convertToPromise(this.conn.query);
+    try {
+      const result = await promisifiedQuery(
+        `select * from author natural join period where aid="${id}"`
+      );
+      return result;
+    } catch (error) {
+      throw Error('error in authorInfo Function');
+    }
+  }
+
+  //method to write author details to database
+  async writeAuthorDetail(aname, nat, dob, death, pid) {
+    const promisifiedQuery = this.convertToPromise(this.conn.query);
+    try {
+      const result = await promisifiedQuery(
+        `insert ignore into author(author_name,nationality,pid,dob,death) values("${aname}","${nat}","${pid}","${dob}","${death}")`
+      );
+      return 'success';
+    } catch (error) {
+      console.log(error);
+      throw Error('error in writeAuthorDetail function');
+    }
+  }
+
+  //query to add period deatils and give inserted eras id
+  async writePeriod(era) {
+    const promisifiedQuery = this.convertToPromise(this.conn.query);
+    try {
+      const result = await promisifiedQuery(
+        `insert ignore into period(era) values("${era}")`
+      );
+      let pid = result.insertId;
+      if (pid == 0) {
+        pid = await this.getPeriodId(era);
+      }
+      return pid;
+    } catch (error) {
+      throw Error('Error in writeperiod function');
+    }
+  }
+
+  //query period table to get id
+  async getPeriodId(era) {
+    const promisifiedQuery = this.convertToPromise(this.conn.query);
+    try {
+      const result = await promisifiedQuery(
+        `select pid from period where era="${era}"`
+      );
+      return result[0].pid;
+    } catch (error) {
+      throw Error('error in getPeriodId function');
+    }
+  }
+
+  //query about all books by specific author
+  async allBooksByAuthor(id) {
+    const promisifiedQuery = this.convertToPromise(this.conn.query);
+    try {
+      const result = await promisifiedQuery(
+        `select * from book where aid=${id}`
+      );
+      return result;
+    } catch (error) {
+      throw Error('error in allBooksByAuthor Function');
     }
   }
 

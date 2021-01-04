@@ -46,7 +46,7 @@ insert into book(aid,title,pid) values  (7,"Harry Potter and the Deathly Hallows
 -- Period Table
 create table Period(
     pid int primary key auto_increment,
-    era int not NULL
+    era int not NULL unique
 );
 
 --conetnts
@@ -143,11 +143,11 @@ begin
 
     drop temporary table if exists v;
 
-    create temporary table r select pgid from searchtable where w=word and leftw=leftword 
+    create temporary table r select pgid,wcxtid from searchtable where w=word and leftw=leftword 
     and pgid in (select * from temp);
 
     create temporary table v select pgid from searchtable where w=word and rightw=rightword 
-    and pgid in (select * from r);
+    and (pgid,wcxtid) in (select * from r);
 
     drop temporary table temp;
 

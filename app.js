@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 
 const morgan = require('morgan');
 const bodyParser = require('body-parser');
@@ -6,6 +7,9 @@ const bodyParser = require('body-parser');
 const authorRouter = require('./routes/shelf').aRouter;
 const bookRouter = require('./routes/shelf').bRouter;
 const searchRouter = require('./routes/search');
+
+const Database = require('./db/db');
+
 const app = express();
 
 //routes
@@ -13,9 +17,27 @@ if (process.env.NODE_ENV == 'development') {
   app.use(morgan('dev'));
 }
 
+// set the view engine to ejs
+app.set('view engine', 'ejs');
+
+app.set('views', path.join(__dirname, 'views'));
+
+//setting static folder to serve js and css files
+app.use(express.static(`${__dirname}/views/static`));
+authorRouter.use(express.static(`${__dirname}/views/static`));
+
 //home page route
-app.get('/', (req, res) => {
-  return res.status(200).send('req recieved');
+app.get('/', async (req, res) => {
+  const db = new Database();
+  try {
+    const allAuthors = await db.authorQuery();
+    const allBooks = await db.bookQuery();
+    return res.render('pages/index', {
+      allAuthors: allAuthors,
+      allBooks: allBooks,
+      disp: 0,
+    });
+  } catch (error) {}
 });
 
 //using 3rd party middleware body-parser
@@ -23,7 +45,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
 //binding routes to router instances
-app.use('/allAuthors', authorRouter);
+app.use('/authors', authorRouter);
 app.use('/allbooks', bookRouter);
 app.use('/search', searchRouter);
 

@@ -76,7 +76,6 @@ class scrapePdf {
         let v = line.match(/(?<=-{16}Page \()(\d+)(?=\) Break-{16})/g);
         pageno = v[0];
         let pagenumInt = parseInt(pageno);
-        console.log(pagenumInt);
         this.pageNum = pagenumInt;
         this.pageText = '';
       } else {
@@ -106,5 +105,5 @@ class scrapePdf {
   }
 }
 
-let r = new scrapePdf(`${__dirname}/pdfs/hp1.pdf`, 'hp1');
+let r = new scrapePdf(`${__dirname}/pdfs/hp2.pdf`, 'hp2');
 r.checklog();
