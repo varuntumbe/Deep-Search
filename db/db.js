@@ -61,6 +61,38 @@ class Database {
     }
   }
 
+  //method to write book details to database
+  async writeBookDetail(aid, pid, title, pages, year) {
+    const promisifiedQuery = this.convertToPromise(this.conn.query);
+    try {
+      const result = await promisifiedQuery(
+        `insert ignore into book(aid,title,pages,pid,year) values("${aid}","${title}","${pages}","${pid}","${year}")`
+      );
+    } catch (error) {
+      console.log(error);
+      throw Error('Error in write BookDetail function');
+    }
+  }
+
+  //method to get author id by name
+  async getAuthorid(aname) {
+    const promisifiedQuery = this.convertToPromise(this.conn.query);
+    try {
+      const result = await promisifiedQuery(
+        `select aid from author where author_name="${aname}"`
+      );
+      console.log(result);
+      //if result is null means that author data is not there
+      if (result.length == 0) {
+        return null;
+      }
+      return result[0].aid;
+    } catch (error) {
+      console.log(error);
+      throw Error('Error in getAuthorid function');
+    }
+  }
+
   //query to add period deatils and give inserted eras id
   async writePeriod(era) {
     const promisifiedQuery = this.convertToPromise(this.conn.query);
@@ -112,6 +144,19 @@ class Database {
       return result;
     } catch (error) {
       return Error('error in book query');
+    }
+  }
+
+  //query about getting specific book by its id
+  async getSpecificBook(bno) {
+    const promisifiedQuery = this.convertToPromise(this.conn.query);
+    try {
+      const result = await promisifiedQuery(
+        `select * from book cross join author on author.aid=book.aid where bno="${bno}"`
+      );
+      return result;
+    } catch (error) {
+      throw Error('error in getSpecificBook method');
     }
   }
 

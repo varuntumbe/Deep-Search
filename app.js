@@ -8,6 +8,8 @@ const authorRouter = require('./routes/shelf').aRouter;
 const bookRouter = require('./routes/shelf').bRouter;
 const searchRouter = require('./routes/search');
 
+const formRouter = require('./routes/forms');
+
 const Database = require('./db/db');
 
 const app = express();
@@ -24,7 +26,9 @@ app.set('views', path.join(__dirname, 'views'));
 
 //setting static folder to serve js and css files
 app.use(express.static(`${__dirname}/views/static`));
+bookRouter.use(express.static(`${__dirname}/views/static`));
 authorRouter.use(express.static(`${__dirname}/views/static`));
+formRouter.use(express.static(`${__dirname}/views/static`));
 
 //home page route
 app.get('/', async (req, res) => {
@@ -46,7 +50,8 @@ app.use(bodyParser.json());
 
 //binding routes to router instances
 app.use('/authors', authorRouter);
-app.use('/allbooks', bookRouter);
+app.use('/books', bookRouter);
 app.use('/search', searchRouter);
+app.use('/forms', formRouter);
 
 module.exports = app;

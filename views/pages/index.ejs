@@ -36,7 +36,6 @@
       <div class="row mb-4">
         <h2 class="col-6 tm-text-primary">Authors</h2>
         <div class="col-6 d-flex justify-content-end align-items-center">
-          <button type="button" class="btn btn-primary" onclick="handleMore()" > More</button>
         </div>
       </div>
     </div>
@@ -44,26 +43,26 @@
     <!--add author content here-->
     <div class="row">
       <!-- fixing 4 cells per row -->
-      <% for(let i=disp; i<4 && i<allAuthors.length; i++) {%> <%-
-      include('../partials/block',{data:allAuthors[i].author_name}); %> <% } %>
+      <% for(let i=disp; i<allAuthors.length; i++) {%> <%-
+      include('../partials/ablock',{data:allAuthors[i]}); %> <% } %>
     </div>
 
     <div class="row">
       <div class="col-sm-7 ml-auto">
-          <button class="btn btn-primary" type="button"> Add Author</button>
+          <button class="btn btn-primary" type="button"> <a href="http://localhost:8000/forms/addAuthor">Add Author</a></button>
       </div>
     </div>
 
     <!--add your books here-->
     <div class="row">
       <!-- fixing 4 cells per row -->
-      <% for(let i=disp; i<4 && i<allBooks.length; i++) {%> <%-
-      include('../partials/block',{data:allBooks[i].title}); %> <% } %>
+      <% for(let i=disp; i<allBooks.length; i++) {%> <%-
+      include('../partials/bblock',{data:allBooks[i]}); %> <% } %>
     </div>
 
     <div class="row">
       <div class="col-sm-7 ml-auto">
-          <button class="btn btn-primary" type="button"> Add Book</button>
+          <button class="btn btn-primary" type="button"> <a href="http://localhost:8000/forms/addBook">Add Book</a></button>
       </div>
     </div>
 
