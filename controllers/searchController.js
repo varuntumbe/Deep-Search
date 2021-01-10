@@ -2,13 +2,14 @@ const Database = require('../db/db');
 const db = new Database();
 
 exports.getWordContext = (req, res) => {
-  const queryText = req.query.text;
+  const queryText = req.body.text;
+  console.log(queryText);
   if (queryText.length == 0) {
     return res.status(200).end('No text was sent');
   }
   db.queryTextInDb(queryText)
     .then((data) => {
-      return res.status(200).json(data);
+      return res.status(200).render('pages/searchresult', { sresults: data });
     })
     .catch((err) => {
       return res.status(500).end('Error happened in server');

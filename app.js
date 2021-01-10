@@ -29,6 +29,7 @@ app.use(express.static(`${__dirname}/views/static`));
 bookRouter.use(express.static(`${__dirname}/views/static`));
 authorRouter.use(express.static(`${__dirname}/views/static`));
 formRouter.use(express.static(`${__dirname}/views/static`));
+searchRouter.use(express.static(`${__dirname}/views/static`));
 
 //home page route
 app.get('/', async (req, res) => {

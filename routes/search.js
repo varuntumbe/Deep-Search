@@ -9,6 +9,6 @@ const sroute = express.Router();
 // sroute.route('/').post(getWordContext);
 sroute.route('/write').post(writeTextToDb);
 
-sroute.route('/query').get(getWordContext);
+sroute.route('/query').post(getWordContext);
 
 module.exports = sroute;
