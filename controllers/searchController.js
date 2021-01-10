@@ -1,5 +1,6 @@
 const Database = require('../db/db');
 const db = new Database();
+const fs = require('fs');
 
 exports.getWordContext = (req, res) => {
   const queryText = req.body.text;
@@ -21,12 +22,46 @@ exports.writeTextToDb = (req, res) => {
   const bookName = scrapeData.data.bookName;
   const wordData = scrapeData.data.wordData;
 
-  db.writeScrapedData(bookName, wordData)
-    .then((data) => {
-      console.log(data);
-      return res.status(200).end('success');
-    })
-    .catch((err) => {
-      return res.status(404).end('failed');
+  //                    --------------  Earlier method ----------------
+  // db.writeScrapedData(bookName, wordData)
+  //   .then((data) => {
+  //     console.log(data);
+  //     return res.status(200).end('success');
+  //   })
+  //   .catch((err) => {
+  //     return res.status(404).end('failed');
+  //   }
+
+  const { fork } = require('child_process');
+
+  //forking a child process
+  const writingToDbChildProcess = fork(`${__dirname}/childProcess.js`);
+
+  //sending the text thorugh message
+  writingToDbChildProcess.send([bookName, wordData]);
+
+  //regestering a callback which gets executed after child process sends a msg
+  writingToDbChildProcess.on('message', (msg) => {
+    var datetime = new Date();
+    const logEntry = `written successfully on - ${
+      datetime.toISOString().slice(0, 10) +
+      '    Time : ' +
+      datetime.getHours() +
+      ' : ' +
+      datetime.getMinutes() +
+      ' : ' +
+      datetime.getSeconds()
+    }\n`;
+    console.log(logEntry);
+    fs.appendFile(`${__dirname}/../logs/entryForDb.txt`, logEntry, (err) => {
+      if (err) {
+        console.log(
+          'error happened while appending to log file and the error is : ',
+          err
+        );
+      }
     });
+  });
+
+  res.status(200).end('process is started successfully');
 };

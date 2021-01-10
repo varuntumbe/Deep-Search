@@ -30,8 +30,6 @@ exports.addAuthor = async (req, res) => {
     const death = req.body.death || '1828-08-09';
     const era = req.body.era || 20; //default is 20th century
 
-    console.log(authorName, nationality, era);
-
     const pid = await db.writePeriod(parseInt(era));
     const result = await db.writeAuthorDetail(
       authorName,
@@ -78,14 +76,11 @@ exports.addBook = async (req, res) => {
     return res.status(422).json({ errors: errors.array() });
   }
   try {
-    console.log(req.body);
     const bookTitle = req.body.bookTitle;
     const noPages = req.body.noPages;
-    const rYear = req.body.rYear || '1828-08-09';
+    const rYear = req.body.rYear || '1828-08-09'; //default published year
     const era = req.body.era || 20; //default is 20th century
     const authorName = req.body.authorName;
-
-    console.log(bookTitle, noPages, rYear);
 
     const pid = await db.writePeriod(parseInt(era));
     const aid = await db.getAuthorid(authorName);
