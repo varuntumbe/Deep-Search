@@ -49,6 +49,8 @@ app.get('/', async (req, res) => {
 //using 3rd party middleware body-parser
 // app.use(bodyParser.urlencoded({ extended: false }));
 // app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
 app.use(fileUpload());
 
 //binding routes to router instances
