@@ -30,6 +30,19 @@ exports.addAuthor = async (req, res) => {
     const death = req.body.death || '1828-08-09';
     const era = req.body.era || 20; //default is 20th century
 
+    //handling file upload here
+    if (req.files || Object.keys(req.files).length != 0) {
+      // The name of the input field (i.e. "sampleFile") is used to retrieve the uploaded file
+      let profilePic = req.files.profilePic;
+      let path = `${__dirname}/../views/static/img/${profilePic.name}`;
+
+      // Use the mv() method to place the file somewhere on your server
+      profilePic.mv(path, function (err) {
+        if (err) console.log(err);
+        else console.log('file stored in desired location');
+      });
+    }
+
     const pid = await db.writePeriod(parseInt(era));
     const result = await db.writeAuthorDetail(
       authorName,
@@ -38,7 +51,8 @@ exports.addAuthor = async (req, res) => {
       death,
       pid
     );
-    return res.status(200).send('success in adding author data');
+    const baseAddr = process.env.baseAdress;
+    return res.redirect(301, `${baseAddr}/`);
   } catch (error) {
     console.log(error);
     return res.status(500).send('error while adding author data');
@@ -82,6 +96,25 @@ exports.addBook = async (req, res) => {
     const era = req.body.era || 20; //default is 20th century
     const authorName = req.body.authorName;
 
+    //handling file upload here
+    if (req.files || Object.keys(req.files).length != 0) {
+      // The name of the input field (i.e. "sampleFile") is used to retrieve the uploaded file
+      let bookPic = req.files.bookPic;
+      let bookPdf = req.files.bookPdf;
+      let imgPath = `${__dirname}/../views/static/img/${bookPic.name}`;
+      let bookPath = `${__dirname}/../views/static/pdf/${bookPdf.name}`;
+
+      // Use the mv() method to place the file somewhere on your server
+      bookPic.mv(imgPath, function (err) {
+        if (err) console.log(err);
+        else console.log('file stored in desired location');
+      });
+      bookPdf.mv(bookPath, function (err) {
+        if (err) console.log(err);
+        else console.log('file stored in desired location');
+      });
+    }
+
     const pid = await db.writePeriod(parseInt(era));
     const aid = await db.getAuthorid(authorName);
     if (!aid) {
@@ -98,7 +131,8 @@ exports.addBook = async (req, res) => {
       rYear
     );
 
-    return res.status(200).send('success in adding book data');
+    const baseAddr = process.env.baseAdress;
+    return res.redirect(301, `${baseAddr}/`);
   } catch (error) {
     console.log(error);
     return res.status(500).send('error while adding book data');
