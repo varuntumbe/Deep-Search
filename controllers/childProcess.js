@@ -1,5 +1,5 @@
-const Database = require('../db/db');
-const db = new Database();
+const searchDatabase = require('../db/searchDb');
+const db = new searchDatabase();
 
 //defining a function which will be executed once the child gets instr form parent
 const writeToDb = async (bookName, wordData) => {

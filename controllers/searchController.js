@@ -1,5 +1,5 @@
-const Database = require('../db/db');
-const db = new Database();
+const searchDatabase = require('../db/searchDb');
+const db = new searchDatabase();
 const fs = require('fs');
 
 exports.getWordContext = (req, res) => {

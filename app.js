@@ -11,7 +11,7 @@ const searchRouter = require('./routes/search');
 
 const formRouter = require('./routes/forms');
 
-const Database = require('./db/db');
+const shelfDatabase = require('./db/shelfDb');
 
 const app = express();
 
@@ -34,7 +34,7 @@ searchRouter.use(express.static(`${__dirname}/views/static`));
 
 //home page route
 app.get('/', async (req, res) => {
-  const db = new Database();
+  const db = new shelfDatabase();
   try {
     const allAuthors = await db.authorQuery();
     const allBooks = await db.bookQuery();

@@ -1,6 +1,6 @@
 const { validationResult } = require('express-validator');
-const Database = require('../db/db');
-const db = new Database();
+const shelfDatabase = require('../db/shelfDb');
+const db = new shelfDatabase();
 
 /*---------Author--------*/
 //handler for GET allAuthor route
